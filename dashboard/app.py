@@ -124,12 +124,13 @@ _ARCH_LABELS = {"anchored": "Goal-anchored", "lane_transformer": "WTA baseline"}
 
 
 @st.cache_resource
-def discover_checkpoints() -> dict[str, str]:
-    """Label -> path for every loadable checkpoint in known locations.
+def discover_checkpoints() -> tuple[dict[str, str], list[str]]:
+    """(label -> path) for every loadable checkpoint in known locations, plus skip reasons.
 
     The picker is a fixed list rather than a free-text path, so dashboard users can't point
     the loader at arbitrary files on the host. Checkpoints that can't be loaded (old formats,
-    removed architectures) are skipped instead of being offered and crashing on selection.
+    removed architectures) are skipped, and the reason is returned so the UI can say so
+    instead of silently dropping a model from the list.
     """
     from foresee.models import ARCHS
 
@@ -140,14 +141,20 @@ def discover_checkpoints() -> dict[str, str]:
     for special in (demo_base, demo_ckpt):   # demo pair goes first, anchored on top
         if special.is_file():
             candidates.insert(0, special)
+    if not demo_ckpt.is_file():
+        skipped = [f"{demo_ckpt}: file not found"]
+    else:
+        skipped = []
 
     out: dict[str, str] = {}
     for p in candidates:
         try:
             arch = torch.load(p, map_location="cpu", weights_only=True).get("arch")
-        except Exception:
+        except Exception as e:
+            skipped.append(f"{p.name}: {type(e).__name__}: {e}")
             continue
         if arch not in ARCHS:
+            skipped.append(f"{p.name}: unknown arch '{arch}'")
             continue
         name = _ARCH_LABELS.get(arch, arch)
         if p == demo_ckpt:
@@ -160,7 +167,7 @@ def discover_checkpoints() -> dict[str, str]:
         while label in out:
             label += " *"
         out[label] = str(p)
-    return out
+    return out, skipped
 
 
 @st.cache_resource
@@ -221,12 +228,14 @@ def main() -> None:
 
     # ---- sidebar ----
     st.sidebar.markdown("### Controls")
-    ckpts = discover_checkpoints()
+    ckpts, skipped = discover_checkpoints()
     if ckpts:
         picked = st.sidebar.selectbox("Model", list(ckpts))
         checkpoint = ckpts[picked]
     else:
         checkpoint = ""
+    for reason in skipped:
+        st.sidebar.caption(f"skipped checkpoint - {reason}")
     st.sidebar.markdown(
         badge("checkpoint loaded", "success") if (checkpoint and Path(checkpoint).is_file())
         else badge("untrained model", "warning"), unsafe_allow_html=True)
