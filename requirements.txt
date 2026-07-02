@@ -2,7 +2,7 @@
 # For local GPU training install torch with CUDA instead:
 #   pip install torch --index-url https://download.pytorch.org/whl/cu121
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.5.1+cpu
+torch==2.12.1+cpu
 numpy>=1.23
 pandas>=1.5
 pyarrow>=10.0
