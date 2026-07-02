@@ -97,7 +97,7 @@ def main() -> int:
     args = ap.parse_args()
 
     model, feature_cfg = load_model_from_checkpoint(args.checkpoint, args.device)
-    ckpt = torch.load(args.checkpoint, map_location="cpu")
+    ckpt = torch.load(args.checkpoint, map_location="cpu", weights_only=True)
     arch = ckpt.get("arch", "?")
     cfg = Config()
     cfg.feature = feature_cfg

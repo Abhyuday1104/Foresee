@@ -25,8 +25,12 @@ def save_checkpoint(path, model, arch: str, feature_cfg: FeatureConfig,
 
 
 def load_model_from_checkpoint(path: str, device: str = "cpu") -> Tuple[object, FeatureConfig]:
-    """Rebuild the saved model (any arch) and its FeatureConfig from a checkpoint."""
-    ckpt = torch.load(path, map_location=device)
+    """Rebuild the saved model (any arch) and its FeatureConfig from a checkpoint.
+
+    weights_only=True keeps this a tensor/primitive deserialization rather than arbitrary
+    pickle, which matters because the dashboard loads checkpoints by path.
+    """
+    ckpt = torch.load(path, map_location=device, weights_only=True)
     feature_cfg = FeatureConfig(**ckpt["feature_cfg"])
     model_cfg = ModelConfig(**ckpt["model_cfg"])
     arch = ckpt.get("arch")

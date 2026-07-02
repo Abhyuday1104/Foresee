@@ -6,6 +6,8 @@ synthetic ones otherwise, so every entry point runs without the 100 GB dataset.
 
 from __future__ import annotations
 
+import logging
+import os
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -16,6 +18,8 @@ from torch.utils.data import Dataset
 from ..config import Config, FeatureConfig
 from . import features as F
 from . import synthetic
+
+log = logging.getLogger(__name__)
 
 # Keys that are fixed-size tensors (stacked by the collate); everything else is a list.
 _TENSOR_KEYS = ("hist", "hist_mask", "object_types", "is_ego", "cur_pos",
@@ -43,20 +47,31 @@ def _feature_signature(fc) -> str:
 
 def _load_or_build_cached(parquet: Path, map_json: Path, cfg: FeatureConfig,
                           cache_dir: Optional[Path]) -> F.Sample:
-    """Parse a scenario, caching the resulting Sample as .npz for fast subsequent epochs."""
+    """Parse a scenario, caching the resulting Sample as .npz for fast subsequent epochs.
+
+    Writes go to a temp file and are moved into place with os.replace, so a killed process
+    (or workers racing on epoch 1) can't leave a truncated npz behind. A cache file that
+    fails to load is deleted and rebuilt instead of poisoning every later run.
+    """
     if cache_dir is None:
         return F.scenario_to_sample(parquet, map_json, cfg)
     cache_dir.mkdir(parents=True, exist_ok=True)
     cache_file = cache_dir / f"{parquet.parent.name}.npz"
     if cache_file.is_file():
-        data = np.load(cache_file, allow_pickle=False)
-        sample = {k: data[k] for k in data.files if k != "scenario_id"}
-        sample["scenario_id"] = str(data["scenario_id"])
-        return sample
+        try:
+            data = np.load(cache_file, allow_pickle=False)
+            sample = {k: data[k] for k in data.files if k != "scenario_id"}
+            sample["scenario_id"] = str(data["scenario_id"])
+            return sample
+        except Exception:
+            log.warning("corrupt cache file %s, rebuilding", cache_file)
+            cache_file.unlink(missing_ok=True)
     sample = F.scenario_to_sample(parquet, map_json, cfg)
     to_save = {k: np.asarray(v) for k, v in sample.items() if k != "scenario_id"}
     to_save["scenario_id"] = np.array(sample["scenario_id"])
-    np.savez(cache_file, **to_save)
+    tmp = cache_file.parent / f"{cache_file.name}.{os.getpid()}.tmp.npz"
+    np.savez(tmp, **to_save)
+    os.replace(tmp, cache_file)
     return sample
 
 
@@ -64,14 +79,20 @@ def _scan_scenarios(split_dir: Path) -> List[Tuple[Path, Path]]:
     """Find (parquet, map_json) pairs under an AV2 split directory.
 
     AV2 layout: ``<split>/<scenario_id>/scenario_<id>.parquet`` +
-    ``log_map_archive_<id>.json``.
+    ``log_map_archive_<id>.json``. One listing per scenario directory; a couple of seconds
+    for the subsets used here. At full-dataset scale (200k dirs) this should become a
+    manifest built once, at the cost of staleness handling when scenarios are added.
     """
     pairs: List[Tuple[Path, Path]] = []
     if not split_dir.is_dir():
         return pairs
     for scen_dir in sorted(p for p in split_dir.iterdir() if p.is_dir()):
-        parquet = next(scen_dir.glob("scenario_*.parquet"), None)
-        map_json = next(scen_dir.glob("log_map_archive_*.json"), None)
+        parquet = map_json = None
+        for f in scen_dir.iterdir():
+            if f.name.startswith("scenario_") and f.suffix == ".parquet":
+                parquet = f
+            elif f.name.startswith("log_map_archive_") and f.suffix == ".json":
+                map_json = f
         if parquet is not None and map_json is not None:
             pairs.append((parquet, map_json))
     return pairs

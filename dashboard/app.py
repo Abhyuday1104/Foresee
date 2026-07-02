@@ -120,12 +120,15 @@ def get_dataset(_cfg: Config) -> MotionForecastingDataset:
     return MotionForecastingDataset(_cfg.feature, synthetic_size=512, synthetic_offset=10_000_000)
 
 
-def find_latest_checkpoint() -> str:
-    c = list(Path(".").glob("runs*/**/best.pt"))
-    if c:
-        return str(max(c, key=lambda p: p.stat().st_mtime))
+def discover_checkpoints() -> list[str]:
+    """Known checkpoint locations only - the picker is a fixed list, not a free-text path,
+    so dashboard users can't point the loader at arbitrary files on the host."""
+    found = sorted(Path(".").glob("runs*/**/best.pt"), key=lambda p: p.stat().st_mtime,
+                   reverse=True)
     demo_ckpt = _DEMO_DIR / "checkpoint.pt"
-    return str(demo_ckpt) if demo_ckpt.is_file() else ""
+    if demo_ckpt.is_file():
+        found.append(demo_ckpt)
+    return [str(p) for p in found]
 
 
 @st.cache_resource
@@ -186,7 +189,8 @@ def main() -> None:
 
     # ---- sidebar ----
     st.sidebar.markdown("### Controls")
-    checkpoint = st.sidebar.text_input("Checkpoint", value=find_latest_checkpoint())
+    options = discover_checkpoints()
+    checkpoint = st.sidebar.selectbox("Checkpoint", options) if options else ""
     st.sidebar.markdown(
         badge("checkpoint loaded", "success") if (checkpoint and Path(checkpoint).is_file())
         else badge("untrained model", "warning"), unsafe_allow_html=True)
