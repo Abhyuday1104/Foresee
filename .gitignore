@@ -15,6 +15,7 @@ dist/
 /data/
 *.pt
 !demo/checkpoint.pt
+!demo/baseline.pt
 audit_val.csv
 audit.csv
 **/motion-forecasting/

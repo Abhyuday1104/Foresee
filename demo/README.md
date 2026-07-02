@@ -4,6 +4,9 @@ This folder makes the dashboard runnable (locally and on Streamlit Community Clo
 downloading the full ~100 GB dataset or training a model:
 
 - `checkpoint.pt` - the trained goal-anchored model (~11 MB).
+- `baseline.pt` - the earlier winner-takes-all model, kept so the dashboard can show the
+  mode-collapse comparison: switch models on the same scenario and watch the six modes
+  collapse from a fan of maneuvers into near-duplicates of "go straight".
 - `data/val/` - 18 curated scenarios from the Argoverse 2 Motion Forecasting validation split,
   chosen to include high-risk conflicts, turn maneuvers, and ordinary driving.
 

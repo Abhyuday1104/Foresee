@@ -136,8 +136,10 @@ def discover_checkpoints() -> dict[str, str]:
     candidates = sorted(Path(".").glob("runs*/**/best.pt"),
                         key=lambda p: p.stat().st_mtime, reverse=True)
     demo_ckpt = _DEMO_DIR / "checkpoint.pt"
-    if demo_ckpt.is_file():
-        candidates.insert(0, demo_ckpt)
+    demo_base = _DEMO_DIR / "baseline.pt"
+    for special in (demo_base, demo_ckpt):   # demo pair goes first, anchored on top
+        if special.is_file():
+            candidates.insert(0, special)
 
     out: dict[str, str] = {}
     for p in candidates:
@@ -150,6 +152,8 @@ def discover_checkpoints() -> dict[str, str]:
         name = _ARCH_LABELS.get(arch, arch)
         if p == demo_ckpt:
             label = f"{name} (demo bundle)"
+        elif p == demo_base:
+            label = f"{name} (demo - shows mode collapse)"
         else:
             when = time.strftime("%b %d", time.localtime(p.stat().st_mtime))
             label = f"{name} - {p.parent.parent.name}, {when}"
