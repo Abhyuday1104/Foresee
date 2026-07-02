@@ -8,6 +8,10 @@ layer that turns those predictions into something a reviewer can act on: is the 
 vehicle in danger, from whom, and why. I validated the conflict taxonomy against real crash
 data from NHTSA.
 
+**Live demo:** [foresee-dashboard.streamlit.app](https://foresee-dashboard.streamlit.app/) -
+runs on the bundled scenarios and trained model, nothing to install. First load takes a minute
+while it processes the scenarios.
+
 ![Dashboard playback of a high-risk conflict](assets/demo.gif)
 
 *A validation scenario from the bundled demo: a motorcyclist on a collision course with the AV.
@@ -144,8 +148,9 @@ the recall-oriented screening configuration for batch audits.
 
 ## Live demo
 
-The repo bundles a trained checkpoint and 18 curated real scenarios under `demo/`, so the
-dashboard runs with zero setup:
+Hosted at [foresee-dashboard.streamlit.app](https://foresee-dashboard.streamlit.app/). The repo
+bundles a trained checkpoint and 18 curated real scenarios under `demo/`, so the dashboard also
+runs locally with zero setup:
 
 ```bash
 pip install -r requirements.txt
