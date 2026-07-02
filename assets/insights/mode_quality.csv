@@ -1,0 +1,4 @@
+checkpoint,arch,n,distinct_maneuvers,top1_accuracy,deployed_ade_m,oracle_min_ade_m,temperature
+runs_lanetf/20260626-181219/best.pt,lane_transformer,416,1.44,0.279,3.8,1.39,1.0
+runs_anchored2/20260629-023629/best.pt,anchored,416,2.63,0.635,3.23,1.76,1.88
+runs_anchored/20260628-182506/best.pt,anchored,416,2.5,0.659,3.23,1.88,1.95

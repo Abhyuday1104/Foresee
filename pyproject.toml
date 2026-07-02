@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "foresee"
+version = "0.1.0"
+description = "Multimodal trajectory prediction on Argoverse 2 with a probabilistic LSTM."
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "torch>=2.0",
+    "numpy>=1.23",
+    "tqdm>=4.64",
+    "matplotlib>=3.6",
+]
+
+[project.optional-dependencies]
+# Real dataset support (large; optional - the project runs on synthetic data without it).
+av2 = ["av2>=0.2.1", "pandas>=1.5", "pyarrow>=10.0"]
+dashboard = ["streamlit>=1.30", "matplotlib>=3.6"]
+dev = ["pytest>=8.0", "ruff>=0.4"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --ignore=tests/smoke_test.py"
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+src = ["src", "analysis", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E402"]  # deferred imports after matplotlib.use / sys.path setup are intentional
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"

@@ -1,0 +1,5 @@
+category,argoverse_precursor_share,nhtsa_crash_share
+Closing on lead / fixed object,0.412,0.47
+Lane departure / swerve,0.0,0.38
+Turn across path,0.588,0.14
+Lane change / merge,0.0,0.01

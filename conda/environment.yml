@@ -1,0 +1,26 @@
+# Reproducible environment for Foresee.
+# Create with:  conda env create -f conda/environment.yml   (or run conda/install.sh)
+name: foresee
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  # --- PyTorch (GPU). For a CPU-only box, drop pytorch-cuda and add `cpuonly`. ---
+  - pytorch>=2.0
+  - torchvision
+  - pytorch-cuda=12.1
+  # --- Scientific stack ---
+  - numpy>=1.23
+  - pandas>=1.5
+  - pyarrow>=10.0
+  - matplotlib>=3.6
+  - tqdm>=4.64
+  # --- Dataset transfer tool (no AWS account needed) ---
+  - s5cmd
+  # --- Dashboard + AV2 API via pip (av2 is not on conda-forge) ---
+  - pip:
+      - av2>=0.2.1
+      - streamlit>=1.30

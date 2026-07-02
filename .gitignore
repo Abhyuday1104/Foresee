@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Training artifacts & data (never commit weights or datasets)
+/runs/
+/runs_*/
+/data/
+*.pt
+!demo/checkpoint.pt
+audit_val.csv
+audit.csv
+**/motion-forecasting/
+
+# Personal notes and assistant config (stay local, not part of the portfolio)
+INTERVIEW.md
+CLAUDE.md
+
+# Tooling / OS / editor
+.claude/
+nohup.out
+.DS_Store
+.vscode/
+.idea/

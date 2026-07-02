@@ -1,0 +1,21 @@
+,count,dimension
+Closing on lead / fixed object,254,conflict_type
+Lane departure / swerve,207,conflict_type
+Turn across path,78,conflict_type
+Lane change / merge,7,conflict_type
+Proceeding Straight,239,precrash_movement
+Lane / Road Departure,207,precrash_movement
+Making Left Turn,50,precrash_movement
+Making Right Turn,27,precrash_movement
+"Other, see Narrative",17,precrash_movement
+Stopped,15,precrash_movement
+Changing Lanes,6,precrash_movement
+Parking Maneuver,3,precrash_movement
+Other Fixed Object,180,crash_with
+Passenger Car,140,crash_with
+SUV,97,crash_with
+"Other, see Narrative",47,crash_with
+Pickup Truck,47,crash_with
+Pole / Tree,26,crash_with
+Heavy Truck,21,crash_with
+Van,9,crash_with

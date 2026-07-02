@@ -1,0 +1,12 @@
+# Deployment / fresh-install requirements (CPU). Used by Streamlit Community Cloud.
+# For local GPU training install torch with CUDA instead:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu121
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.5.1+cpu
+numpy>=1.23
+pandas>=1.5
+pyarrow>=10.0
+matplotlib>=3.6
+tqdm>=4.64
+streamlit>=1.30
+av2>=0.2.1
