@@ -9,12 +9,15 @@ av2 imports are deferred so this module also works without the package installed
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Dict, List, Tuple
 
 import numpy as np
 
 from ..config import FeatureConfig
+
+log = logging.getLogger(__name__)
 
 # Canonical object-type ordering. Indices are used by the model's type embedding and the
 # dashboard's type-coded rendering. "ego" is a synthetic class we assign to the AV (the
@@ -215,14 +218,18 @@ def extract_lane_features(
     try:
         nearby = static_map.get_nearby_lane_segments(origin.astype(np.float64), cfg.map_radius_m)
     except Exception:
+        log.warning("get_nearby_lane_segments failed, falling back to all segments",
+                    exc_info=True)
         nearby = list(getattr(static_map, "vector_lane_segments", {}).values())
 
     # Sort by distance of the centerline midpoint to the focal agent (closest first).
     scored = []
+    failed = 0
     for ls in nearby:
         try:
             centerline = static_map.get_lane_segment_centerline(ls.id)[:, :2]
         except Exception:
+            failed += 1
             continue
         if centerline.shape[0] < 2:
             continue
@@ -236,6 +243,12 @@ def extract_lane_features(
         lanes[slot] = polyline_to_features(cl_agent)
         lane_mask[slot] = True
 
+    if failed:
+        log.warning("%d/%d lane centerlines failed to parse", failed, len(nearby))
+    if not lane_mask.any():
+        # A scene with zero lanes would be trained on silently otherwise.
+        log.warning("no usable lanes within %.0f m of origin - sample has an empty map",
+                    cfg.map_radius_m)
     return lanes, lane_mask
 
 
@@ -286,6 +299,9 @@ def extract_render_map(static_map, origin: np.ndarray, radius: float = 70.0) -> 
         except Exception:
             pass
 
+    if not any(out.values()):
+        log.warning("render map came back empty within %.0f m - map file may be unreadable",
+                    radius)
     return out
 
 

@@ -28,7 +28,8 @@ from .models import ARCHS, build_model
 
 
 def _move(batch: Dict[str, object], device: str) -> Dict[str, object]:
-    return {k: (v.to(device) if torch.is_tensor(v) else v) for k, v in batch.items()}
+    return {k: (v.to(device, non_blocking=True) if torch.is_tensor(v) else v)
+            for k, v in batch.items()}
 
 
 def build_config(args: argparse.Namespace) -> Config:
@@ -128,7 +129,7 @@ def main() -> None:
                         help="Model architecture (lane_transformer is more accurate).")
     parser.add_argument("--no-uncertainty", action="store_true",
                         help="Disable the Laplace-scale head (use Huber regression instead).")
-    parser.add_argument("--num-workers", type=int, default=0)
+    parser.add_argument("--num-workers", type=int, default=TrainConfig.num_workers)
     parser.add_argument("--data-root", type=str, default=None,
                         help="Override FORESEE_DATA_ROOT (path to the AV2 split).")
     parser.add_argument("--require-real-data", action="store_true",
@@ -143,11 +144,12 @@ def main() -> None:
     torch.manual_seed(cfg.train.seed)
 
     train_ds, val_ds = build_datasets(cfg)
-    train_loader = DataLoader(train_ds, batch_size=cfg.train.batch_size, shuffle=True,
-                              num_workers=cfg.train.num_workers, collate_fn=collate_samples,
-                              drop_last=True)
-    val_loader = DataLoader(val_ds, batch_size=cfg.train.batch_size, shuffle=False,
-                            num_workers=cfg.train.num_workers, collate_fn=collate_samples)
+    workers = cfg.train.num_workers
+    loader_kwargs = dict(batch_size=cfg.train.batch_size, num_workers=workers,
+                         collate_fn=collate_samples, pin_memory=args.device == "cuda",
+                         persistent_workers=workers > 0)
+    train_loader = DataLoader(train_ds, shuffle=True, drop_last=True, **loader_kwargs)
+    val_loader = DataLoader(val_ds, shuffle=False, **loader_kwargs)
 
     model = build_model(cfg.arch, cfg.feature, cfg.model).to(args.device)
     n_params = sum(p.numel() for p in model.parameters())
