@@ -39,7 +39,10 @@ def _raw_arrays(dataset, idx):
     parquet, map_json = dataset.scenario_paths[idx]
     scenario = F.load_scenario(parquet)
     pos, head, vel, valid, tids, is_av, focal = F._raw_tracks_from_scenario(scenario, cfg)
-    static_map = F.load_static_map(map_json)
+    try:
+        static_map = F.load_static_map(map_json)
+    except Exception:
+        static_map = None  # degrade like build_playback does; lanes just stay empty
     return pos, head, vel, valid, tids, is_av, focal, static_map
 
 
