@@ -120,15 +120,43 @@ def get_dataset(_cfg: Config) -> MotionForecastingDataset:
     return MotionForecastingDataset(_cfg.feature, synthetic_size=512, synthetic_offset=10_000_000)
 
 
-def discover_checkpoints() -> list[str]:
-    """Known checkpoint locations only - the picker is a fixed list, not a free-text path,
-    so dashboard users can't point the loader at arbitrary files on the host."""
-    found = sorted(Path(".").glob("runs*/**/best.pt"), key=lambda p: p.stat().st_mtime,
-                   reverse=True)
+_ARCH_LABELS = {"anchored": "Goal-anchored", "lane_transformer": "WTA baseline"}
+
+
+@st.cache_resource
+def discover_checkpoints() -> dict[str, str]:
+    """Label -> path for every loadable checkpoint in known locations.
+
+    The picker is a fixed list rather than a free-text path, so dashboard users can't point
+    the loader at arbitrary files on the host. Checkpoints that can't be loaded (old formats,
+    removed architectures) are skipped instead of being offered and crashing on selection.
+    """
+    from foresee.models import ARCHS
+
+    candidates = sorted(Path(".").glob("runs*/**/best.pt"),
+                        key=lambda p: p.stat().st_mtime, reverse=True)
     demo_ckpt = _DEMO_DIR / "checkpoint.pt"
     if demo_ckpt.is_file():
-        found.append(demo_ckpt)
-    return [str(p) for p in found]
+        candidates.insert(0, demo_ckpt)
+
+    out: dict[str, str] = {}
+    for p in candidates:
+        try:
+            arch = torch.load(p, map_location="cpu", weights_only=True).get("arch")
+        except Exception:
+            continue
+        if arch not in ARCHS:
+            continue
+        name = _ARCH_LABELS.get(arch, arch)
+        if p == demo_ckpt:
+            label = f"{name} (demo bundle)"
+        else:
+            when = time.strftime("%b %d", time.localtime(p.stat().st_mtime))
+            label = f"{name} - {p.parent.parent.name}, {when}"
+        while label in out:
+            label += " *"
+        out[label] = str(p)
+    return out
 
 
 @st.cache_resource
@@ -189,8 +217,12 @@ def main() -> None:
 
     # ---- sidebar ----
     st.sidebar.markdown("### Controls")
-    options = discover_checkpoints()
-    checkpoint = st.sidebar.selectbox("Checkpoint", options) if options else ""
+    ckpts = discover_checkpoints()
+    if ckpts:
+        picked = st.sidebar.selectbox("Model", list(ckpts))
+        checkpoint = ckpts[picked]
+    else:
+        checkpoint = ""
     st.sidebar.markdown(
         badge("checkpoint loaded", "success") if (checkpoint and Path(checkpoint).is_file())
         else badge("untrained model", "warning"), unsafe_allow_html=True)
